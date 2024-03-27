@@ -57,12 +57,28 @@ def dothething(feeds, webhooks):
             if len(newposts[feed]) == 0:
                 continue
             for post in newposts[feed]:
+                if "content" in post:
+                        content = post["content"][0]["value"]
+                elif "summary" in post:
+                        print(str(post["link"]) + " has no content, using summary")
+                        content = post["summary"]
+                else:
+                        print(str(post["link"]) + " has no content or summary, blanking")
+                        content = ""
                 webhook = DiscordWebhook(url=webhooks[item]["url"], username=feeds[feed]["title"], rate_limit_retry=True)
-                embed = DiscordEmbed(title=str(post["title"]), description=textwrap.shorten(lxml.html.fromstring(post["content"][0]["value"]).text_content(), width=500, placeholder="..."))
+                embed = DiscordEmbed(title=str(post["title"]), description=textwrap.shorten(lxml.html.fromstring(content).text_content(), width=500, placeholder="..."))
                 embed.set_url(url=str(post["link"]))
                 embed.set_author(name=str(post["author"]))
                 embed.set_timestamp()
-                embed.set_image(url=CSSSelector("img")(lxml.html.fromstring(post["content"][0]["value"]))[0].get("src"))
+                #TODO: No, rewrite it lmao
+                try:
+                        if len(CSSSelector("img")(lxml.html.fromstring(post["content"][0]["value"]))) != 0:
+                                embed.set_image(url=CSSSelector("img")(lxml.html.fromstring(post["content"][0]["value"]))[0].get("src"))
+                except:
+                        print(str(post["link"]) + " post content has no image link")
+                if "media_thumbnail" in post:
+                        print(str(post["link"]) + " has no content image, using media_thumbnail")
+                        embed.set_image(str(post["media_thumbnail"][0]["url"]))
                 webhook.add_embed(embed)
                 response = webhook.execute()
 
